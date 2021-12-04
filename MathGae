@@ -1,0 +1,42 @@
+using System;
+namespace GeneralAdvantageEstimateCalculator {
+    public struct MathGae {
+        /// <summary>
+        /// Calculate new values as target for the critic network
+        /// </summary>
+        /// <param name="reward">The total rewards gained in the state</param>
+        /// <param name="values">The values predicted by the critic network</param>
+        /// <param name="isTerminal">Is this the final step taken during an agent's episode (lifetime)?</param>
+        /// <param name="isTruncated">If dataset contains steps from many agent, is this and the next step taken from different agents?</param>
+        /// <param name="episodic">Is the terminal step of an episode important in determining the agent's overall quality? [The values of terminal steps will be changed to 0 on Non-Episodic option]</param>
+        /// <param name="discountRate">The discount rate (time decay) of rewards between steps</param>
+        /// <param name="smoothRate">The rate to smooth / generalize advantages from step to step</param>
+        /// <returns></returns>
+        public static float[] GaeTarget(float[] reward, float[] values, bool[] isTerminal, bool[] isTruncated, bool episodic = true, float discountRate = 0.99f, float smoothRate = 0.95f) {
+            return GaeTarget(episodic, discountRate, smoothRate, reward, values, isTerminal, isTruncated);
+        }
+        public static float[] GaeTarget(bool episodic, float discountRate, float smoothRate, float[] reward, float[] values, bool[] isTerminal, bool[] isTruncated) {
+            bool makeTerminalValueZero = !episodic;
+            float[] gae = new float[values.Length];
+            for (int a = gae.Length - 1; a >= 0; a--) {
+                if (isTerminal[a] || isTruncated[a]) {
+                    gae[a] = GaeForTerminalOrTruncatedStep(reward[a], values[a], discountRate, isTerminal[a], makeTerminalValueZero);
+                } else {
+                    gae[a] = GaeForNormalStep(reward[a], values[a], discountRate, smoothRate, values[a + 1], gae[a + 1]);
+                }
+            }
+            return gae;
+        }
+        private static float GaeForTerminalOrTruncatedStep(float reward, float value, float discount, bool isTerminal, bool makeTerminalValueZero) {
+            if (isTerminal) {
+                return makeTerminalValueZero ? 0 : reward - value;
+            } else {
+                return reward + discount * value - value;
+            }
+        }
+        private static float GaeForNormalStep(float reward, float value, float discount, float lambda, float valueNext, float gaeNext) {
+            float gae = reward + discount * valueNext - value;
+            return gae + (gaeNext * discount * lambda);
+        }
+    }
+}
