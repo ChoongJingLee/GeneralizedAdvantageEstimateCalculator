@@ -1,1 +1,1 @@
-# GeneralizedAdvantageEstimateTemplate
+# GeneralizedAdvantageEstimate
