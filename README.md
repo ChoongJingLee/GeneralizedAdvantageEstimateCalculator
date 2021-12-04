@@ -1,1 +1,1 @@
-# GeneralizedAdvantageEstimate
+# GeneralizedAdvantageEstimateCalculator
