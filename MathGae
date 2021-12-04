@@ -1,10 +1,16 @@
 using System;
 namespace GeneralAdvantageEstimateCalculator {
-    public struct MathGae {
+
+    public struct Valuations {
+        public static float[] AdvantagesStdvLerp(float weight, float clampRange, float[] advantages0, float[] advantages1) {
+            advantages0 = clamp(clampRange, sigma(advantages0));
+            advantages1 = clamp(clampRange, sigma(advantages1));
+            return between(weight, advantages0, advantages1);
+        }
         /// <summary>
-        /// Calculate new values as target for the critic network
+        /// Calculate the target values (how valuable the state is) of the next update for critic network
         /// </summary>
-        /// <param name="reward">The total rewards gained in the state</param>
+        /// <param name="reward">The total rewards gained in the step</param>
         /// <param name="values">The values predicted by the critic network</param>
         /// <param name="isTerminal">Is this the final step taken during an agent's episode (lifetime)?</param>
         /// <param name="isTruncated">If dataset contains steps from many agent, is this and the next step taken from different agents?</param>
@@ -12,10 +18,10 @@ namespace GeneralAdvantageEstimateCalculator {
         /// <param name="discountRate">The discount rate (time decay) of rewards between steps</param>
         /// <param name="smoothRate">The rate to smooth / generalize advantages from step to step</param>
         /// <returns></returns>
-        public static float[] GaeTarget(float[] reward, float[] values, bool[] isTerminal, bool[] isTruncated, bool episodic = true, float discountRate = 0.99f, float smoothRate = 0.95f) {
-            return GaeTarget(episodic, discountRate, smoothRate, reward, values, isTerminal, isTruncated);
+        public static float[] CalculateGaeTargetValues(float[] reward, float[] values, bool[] isTerminal, bool[] isTruncated, bool episodic = true, float discountRate = 0.99f, float smoothRate = 0.95f) {
+            return CalculateGaeTargetValues(episodic, discountRate, smoothRate, reward, values, isTerminal, isTruncated);
         }
-        public static float[] GaeTarget(bool episodic, float discountRate, float smoothRate, float[] reward, float[] values, bool[] isTerminal, bool[] isTruncated) {
+        public static float[] CalculateGaeTargetValues(bool episodic, float discountRate, float smoothRate, float[] reward, float[] values, bool[] isTerminal, bool[] isTruncated) {
             bool makeTerminalValueZero = !episodic;
             float[] gae = new float[values.Length];
             for (int a = gae.Length - 1; a >= 0; a--) {
@@ -26,6 +32,17 @@ namespace GeneralAdvantageEstimateCalculator {
                 }
             }
             return gae;
+        }
+        public static float[] CalculateGae(bool episodic, float discountRate, float smoothRate, float[] reward, float[] values, bool[] isTerminal, bool[] isTruncated) {
+            float[] targetValues = CalculateGaeTargetValues(episodic, discountRate, smoothRate, reward, values, isTerminal, isTruncated);
+            float[] gae = new float[targetValues.Length];
+            for (int a = 0; a < targetValues.Length; a++) {
+                gae[a] = targetValues[a] - values[a];
+            }
+            return gae;
+        }
+        public static float[] CalculateGae(float[] reward, float[] values, bool[] isTerminal, bool[] isTruncated, bool episodic = true, float discountRate = 0.99f, float smoothRate = 0.95f) {
+            return CalculateGae(episodic, discountRate, smoothRate, reward, values, isTerminal, isTruncated);
         }
         private static float GaeForTerminalOrTruncatedStep(float reward, float value, float discount, bool isTerminal, bool makeTerminalValueZero) {
             if (isTerminal) {
